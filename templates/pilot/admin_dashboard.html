@@ -1,0 +1,182 @@
+{% extends "pilot/base.html" %}
+
+{% block title %}Admin Dashboard | EkoKintsugi{% endblock %}
+
+{% block content %}
+<section class="panel">
+  <div class="dashboard-head">
+    <div>
+      <p class="section-kicker">Admin control center</p>
+      <h2>Pilot operations dashboard</h2>
+      <p class="muted">10-user controlled environment for product lifecycle validation.</p>
+    </div>
+    <span class="badge">Users {{ users|length }}/10</span>
+  </div>
+</section>
+
+<section class="panel">
+  <p class="section-kicker">User management</p>
+  <h3>Create pilot user</h3>
+  <form method="post" class="stack">
+    {% csrf_token %}
+    <input type="hidden" name="form_name" value="create-user">
+    <div class="grid form-grid">
+      <label><span>First name</span>{{ create_form.first_name }}</label>
+      <label><span>Last name</span>{{ create_form.last_name }}</label>
+      <label><span>Phone</span>{{ create_form.phone }}</label>
+      <label><span>Email</span>{{ create_form.email }}</label>
+      <label><span>Role</span>{{ create_form.role }}</label>
+      <label><span>City</span>{{ create_form.city }}</label>
+      <label><span>Shoe size</span>{{ create_form.shoe_size }}</label>
+      <label><span>Password</span>{{ create_form.password }}</label>
+      <label><span>Start date</span>{{ create_form.start_date }}</label>
+      <label><span>End date</span>{{ create_form.end_date }}</label>
+    </div>
+    <label><span>Address</span>{{ create_form.address }}</label>
+    {% if create_form.errors %}
+      <div class="callout danger">{{ create_form.errors }}</div>
+    {% endif %}
+    <button class="btn primary" type="submit">Create user</button>
+  </form>
+</section>
+
+<section class="stats">
+  <div class="stat"><strong>{{ users|length }}</strong><span>Total users</span></div>
+  <div class="stat"><strong>{{ total_reviews }}</strong><span>Total reviews</span></div>
+  <div class="stat"><strong>{{ returns|length }}</strong><span>Return requests</span></div>
+  <div class="stat"><strong>{{ delivered_count }}</strong><span>Delivered shoes</span></div>
+</section>
+
+<section class="panel">
+  <div class="toolbar">
+    <h3>User table</h3>
+    <span class="muted">Name, role, points, shoe, review, return</span>
+  </div>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr><th>User</th><th>Role</th><th>Points</th><th>Shoe ID</th><th>Review status</th><th>Return status</th></tr>
+      </thead>
+      <tbody>
+        {% for user in users %}
+          <tr>
+            <td>{{ user.get_full_name }}<br><span class="muted">{{ user.email }}</span></td>
+            <td>{{ user.role }}</td>
+            <td>{{ user.points_account.remaining }}</td>
+            <td>{{ user.shoe.shoe_id }}</td>
+            <td>{{ user.reviews.count }}/8</td>
+            <td>{% if user.return_request %}{{ user.return_request.status }}{% else %}Open{% endif %}</td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<section class="panel">
+  <div class="toolbar">
+    <h3>Review tracking</h3>
+    <span class="muted">Week 1-8 progress</span>
+  </div>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr><th>User</th><th>Progress</th><th>Weekly status</th></tr>
+      </thead>
+      <tbody>
+        {% for row in review_rows %}
+          <tr>
+            <td>{{ row.user.get_full_name }}</td>
+            <td>{{ row.completed_count }}/8</td>
+            <td>
+              {% for item in row.week_statuses %}
+                W{{ item.week }}: {% if item.done %}Completed{% else %}Pending{% endif %}{% if not forloop.last %} / {% endif %}
+              {% endfor %}
+            </td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<section class="panel">
+  <div class="toolbar">
+    <h3>Return tracking</h3>
+    <span class="muted">Status and final action management</span>
+  </div>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr><th>Shoe ID</th><th>User</th><th>Status</th><th>Final action</th><th>Update</th></tr>
+      </thead>
+      <tbody>
+        {% for item in returns %}
+          <tr>
+            <td>{{ item.shoe.shoe_id }}</td>
+            <td>{{ item.user.get_full_name }}</td>
+            <td>{{ item.status }}</td>
+            <td>{{ item.final_action|default:"Pending" }}</td>
+            <td>
+              <form method="post" action="{% url 'update-return' item.id %}" class="inline">
+                {% csrf_token %}
+                <select name="status">
+                  {% for value, label in item.STATUS_CHOICES %}
+                    <option value="{{ value }}" {% if item.status == value %}selected{% endif %}>{{ label }}</option>
+                  {% endfor %}
+                </select>
+                <select name="final_action">
+                  <option value="">Select action</option>
+                  {% for value, label in item.FINAL_ACTION_CHOICES %}
+                    <option value="{{ value }}" {% if item.final_action == value %}selected{% endif %}>{{ label }}</option>
+                  {% endfor %}
+                </select>
+                <button class="btn ghost" type="submit">Save</button>
+              </form>
+            </td>
+          </tr>
+        {% empty %}
+          <tr><td colspan="5">No return requests yet.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<section class="panel">
+  <div class="toolbar">
+    <h3>Points management</h3>
+    <span class="muted">Add, approve, or redeem points</span>
+  </div>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr><th>User</th><th>Total earned</th><th>Approved</th><th>Used</th><th>Remaining</th><th>Action</th></tr>
+      </thead>
+      <tbody>
+        {% for user in users %}
+          <tr>
+            <td>{{ user.get_full_name }}</td>
+            <td>{{ user.points_account.total_earned }}</td>
+            <td>{{ user.points_account.approved }}</td>
+            <td>{{ user.points_account.used }}</td>
+            <td>{{ user.points_account.remaining }}</td>
+            <td>
+              <form method="post" action="{% url 'update-points' user.id %}" class="inline">
+                {% csrf_token %}
+                <input type="number" min="1" name="amount" placeholder="Points" style="max-width:100px;">
+                <select name="action_type">
+                  <option value="credit">Add</option>
+                  <option value="approve">Approve</option>
+                  <option value="redeem">Redeem</option>
+                </select>
+                <button class="btn ghost" type="submit">Apply</button>
+              </form>
+            </td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+{% endblock %}

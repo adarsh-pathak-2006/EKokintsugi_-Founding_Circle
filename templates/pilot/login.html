@@ -1,0 +1,41 @@
+{% extends "pilot/base.html" %}
+
+{% block title %}Login | EkoKintsugi{% endblock %}
+
+{% block content %}
+<section class="grid two-col">
+  <div class="panel glass">
+    <p class="section-kicker">Welcome back</p>
+    <h2>Login to the pilot system</h2>
+    <form method="post" class="stack">
+      {% csrf_token %}
+      <label>
+        <span>Email</span>
+        {{ form.username }}
+      </label>
+      <label>
+        <span>Password</span>
+        {{ form.password }}
+      </label>
+      <button class="btn primary" type="submit">Login</button>
+    </form>
+    <div class="demo-credentials">
+      <p><strong>Admin:</strong> admin@ekokintsugi.com / admin123</p>
+      <p><strong>User:</strong> pilot1@ekokintsugi.com / pilot123</p>
+    </div>
+  </div>
+
+  <div class="panel">
+    <p class="section-kicker">Pilot note</p>
+    <h2>Real database now connected</h2>
+    <ul class="list-clean">
+      <li>SQLite stores users, shoes, trees, points, reviews, and return requests.</li>
+      <li>QR pages are unique per user using a UUID token.</li>
+      <li>Admin and user flows are separate and persistent.</li>
+    </ul>
+    <div class="card-actions">
+      <a class="btn secondary" href="{% url 'signup' %}">Create new user</a>
+    </div>
+  </div>
+</section>
+{% endblock %}

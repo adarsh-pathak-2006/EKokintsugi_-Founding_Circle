@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{% block title %}EkoKintsugi Pilot{% endblock %}</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet">
+  {% load static %}
+  <link rel="stylesheet" href="{% static 'pilot/styles.css' %}">
+</head>
+<body>
+  <div class="app-shell">
+    <header class="hero">
+      <div>
+        <p class="eyebrow">EkoKintsugi Founding Circle</p>
+        <h1>Scrap to Shoe to User to Review to Return to Recycle</h1>
+        <p class="hero-copy">Database-backed pilot platform for the circular footwear lifecycle.</p>
+      </div>
+      <div class="hero-actions">
+        {% if request.user.is_authenticated %}
+          {% if request.user.is_staff %}
+            <a class="btn ghost" href="{% url 'admin-dashboard' %}">Admin dashboard</a>
+          {% else %}
+            <a class="btn ghost" href="{% url 'dashboard' %}">My dashboard</a>
+            <a class="btn primary" href="{% url 'qr-dashboard' request.user.qr_token %}">QR page</a>
+          {% endif %}
+          <a class="btn secondary" href="{% url 'logout' %}">Logout</a>
+        {% else %}
+          <a class="btn ghost" href="{% url 'login' %}">Login</a>
+          <a class="btn secondary" href="{% url 'signup' %}">Signup</a>
+        {% endif %}
+      </div>
+    </header>
+
+    {% if messages %}
+      <section class="stack">
+        {% for message in messages %}
+          <div class="callout {{ message.tags }}">{{ message }}</div>
+        {% endfor %}
+      </section>
+    {% endif %}
+
+    <main class="stack">
+      {% block content %}{% endblock %}
+    </main>
+  </div>
+</body>
+</html>

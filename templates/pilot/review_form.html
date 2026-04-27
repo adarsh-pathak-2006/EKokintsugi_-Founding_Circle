@@ -1,0 +1,44 @@
+{% extends "pilot/base.html" %}
+
+{% block title %}Weekly Review | EkoKintsugi{% endblock %}
+
+{% block content %}
+<section class="grid two-col">
+  <div class="panel">
+    <p class="section-kicker">Weekly review</p>
+    <h2>Submit structured product feedback</h2>
+    <form method="post" enctype="multipart/form-data" class="stack">
+      {% csrf_token %}
+      <div class="grid form-grid">
+        <label><span>Week number</span>{{ form.week }}</label>
+        <label><span>Days worn</span>{{ form.days_worn }}</label>
+        <label><span>Hours per day</span>{{ form.hours_per_day }}</label>
+        <label><span>Comfort</span>{{ form.comfort }}</label>
+        <label><span>Fit</span>{{ form.fit }}</label>
+        <label><span>Sole</span>{{ form.sole }}</label>
+        <label><span>Material</span>{{ form.material }}</label>
+        <label><span>Stitching</span>{{ form.stitching }}</label>
+      </div>
+      <label><span>Issues / feedback</span>{{ form.feedback }}</label>
+      <label><span>Image upload</span>{{ form.image }}</label>
+      {% if form.errors %}
+        <div class="callout danger">{{ form.errors }}</div>
+      {% endif %}
+      <div class="card-actions">
+        <button class="btn primary" type="submit">Submit review</button>
+        <a class="btn ghost" href="{% url 'dashboard' %}">Back to dashboard</a>
+      </div>
+    </form>
+  </div>
+  <div class="panel">
+    <p class="section-kicker">Rules</p>
+    <h2>Review constraints</h2>
+    <ul class="list-clean">
+      <li>One review per week only.</li>
+      <li>Maximum 8 reviews per user.</li>
+      <li>No duplicate submissions for the same week.</li>
+      <li>Interns are required to complete the review cycle.</li>
+    </ul>
+  </div>
+</section>
+{% endblock %}

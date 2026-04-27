@@ -1,0 +1,62 @@
+{% extends "pilot/base.html" %}
+
+{% block title %}QR Dashboard | EkoKintsugi{% endblock %}
+
+{% block content %}
+<section class="stack">
+  <div class="panel">
+    <p class="section-kicker">QR landing page</p>
+    <h2>{{ pilot_user.get_full_name|default:pilot_user.email }}</h2>
+    <p class="muted">Mobile-friendly pilot snapshot after scanning the user QR code.</p>
+  </div>
+  <div class="stats">
+    <div class="stat"><strong>{{ pilot_user.shoe.shoe_id }}</strong><span>Shoe ID</span></div>
+    <div class="stat"><strong>{{ points.remaining }}</strong><span>Remaining points</span></div>
+    <div class="stat"><strong>{{ reviews.count }}/8</strong><span>Review progress</span></div>
+    <div class="stat"><strong>{% if pilot_user.return_request %}{{ pilot_user.return_request.status }}{% else %}Open{% endif %}</strong><span>Return status</span></div>
+  </div>
+  <div class="card-grid">
+    <div class="card">
+      <h3>User details</h3>
+      <p><strong>Role:</strong> {{ pilot_user.role }}</p>
+      <p><strong>Phone:</strong> {{ pilot_user.phone }}</p>
+      <p><strong>City:</strong> {{ pilot_user.city }}</p>
+      <p><strong>Shoe size:</strong> {{ pilot_user.shoe_size }}</p>
+    </div>
+    <div class="card">
+      <h3>Shoe details</h3>
+      <p><strong>Product line:</strong> {{ pilot_user.shoe.product_line }}</p>
+      <p><strong>Size:</strong> {{ pilot_user.shoe.size }}</p>
+      <p><strong>Status:</strong> {{ pilot_user.shoe.status }}</p>
+    </div>
+    <div class="card">
+      <h3>Tree information</h3>
+      <p><strong>Tree ID:</strong> {{ pilot_user.tree.tree_id }}</p>
+      <p><strong>Plant type:</strong> {{ pilot_user.tree.plant_type }}</p>
+      <p><strong>Location:</strong> {{ pilot_user.tree.location }}</p>
+      <p><strong>Status:</strong> {{ pilot_user.tree.status }}</p>
+    </div>
+  </div>
+  <div class="grid two-col">
+    <div class="panel">
+      <h3>Weekly review summary</h3>
+      {% if reviews %}
+        <ul class="list-clean">
+          {% for review in reviews %}
+            <li><strong>Week {{ review.week }}:</strong> {{ review.feedback }}</li>
+          {% endfor %}
+        </ul>
+      {% else %}
+        <div class="empty">No reviews submitted yet.</div>
+      {% endif %}
+    </div>
+    <div class="panel">
+      <h3>Quick actions</h3>
+      <div class="stack">
+        <a class="btn primary" href="{% url 'login' %}">Login to submit review</a>
+        <a class="btn secondary" href="{% url 'login' %}">Login to request return</a>
+      </div>
+    </div>
+  </div>
+</section>
+{% endblock %}

@@ -1,0 +1,42 @@
+{% extends "pilot/base.html" %}
+
+{% block title %}Return Request | EkoKintsugi{% endblock %}
+
+{% block content %}
+<section class="grid two-col">
+  <div class="panel">
+    <p class="section-kicker">Return request</p>
+    <h2>Initiate shoe return</h2>
+    {% if existing %}
+      <div class="callout">
+        <p><strong>Status:</strong> {{ existing.status }}</p>
+        <p><strong>Condition:</strong> {{ existing.condition }}</p>
+        <p><strong>Reason:</strong> {{ existing.reason }}</p>
+        <p><strong>Final action:</strong> {{ existing.final_action|default:"Pending admin selection" }}</p>
+      </div>
+    {% else %}
+      <form method="post" class="stack">
+        {% csrf_token %}
+        <label><span>Reason for return</span>{{ form.reason }}</label>
+        <label><span>Condition</span>{{ form.condition }}</label>
+        {% if form.errors %}
+          <div class="callout danger">{{ form.errors }}</div>
+        {% endif %}
+        <div class="card-actions">
+          <button class="btn warn" type="submit">Request return</button>
+          <a class="btn ghost" href="{% url 'dashboard' %}">Back to dashboard</a>
+        </div>
+      </form>
+    {% endif %}
+  </div>
+  <div class="panel">
+    <p class="section-kicker">Workflow</p>
+    <h2>Lifecycle handling</h2>
+    <ul class="list-clean">
+      <li>Admin reviews the return request.</li>
+      <li>Status moves from Requested to Received to Completed.</li>
+      <li>Final action is Repair, Reuse, or Recycle.</li>
+    </ul>
+  </div>
+</section>
+{% endblock %}

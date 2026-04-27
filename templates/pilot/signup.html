@@ -1,0 +1,36 @@
+{% extends "pilot/base.html" %}
+
+{% block title %}Signup | EkoKintsugi{% endblock %}
+
+{% block content %}
+<section class="panel">
+  <p class="section-kicker">Pilot registration</p>
+  <h2>Create a pilot user</h2>
+  {% if pilot_full %}
+    <div class="callout danger">Pilot is full. Only 10 users are allowed.</div>
+  {% endif %}
+  <form method="post" class="stack">
+    {% csrf_token %}
+    <div class="grid form-grid">
+      <label><span>First name</span>{{ form.first_name }}</label>
+      <label><span>Last name</span>{{ form.last_name }}</label>
+      <label><span>Phone</span>{{ form.phone }}</label>
+      <label><span>Email</span>{{ form.email }}</label>
+      <label><span>Role</span>{{ form.role }}</label>
+      <label><span>City</span>{{ form.city }}</label>
+      <label><span>Shoe size</span>{{ form.shoe_size }}</label>
+      <label><span>Password</span>{{ form.password }}</label>
+      <label><span>Start date</span>{{ form.start_date }}</label>
+      <label><span>End date</span>{{ form.end_date }}</label>
+    </div>
+    <label><span>Address</span>{{ form.address }}</label>
+    {% if form.errors %}
+      <div class="callout danger">{{ form.errors }}</div>
+    {% endif %}
+    <div class="card-actions">
+      <button class="btn primary" type="submit" {% if pilot_full %}disabled{% endif %}>Create account</button>
+      <a class="btn ghost" href="{% url 'login' %}">Back to login</a>
+    </div>
+  </form>
+</section>
+{% endblock %}
