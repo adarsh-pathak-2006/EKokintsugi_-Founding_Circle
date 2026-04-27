@@ -1,104 +1,112 @@
-# Deploy This Django Project on Render
+# EkoKintsugi Pilot System
 
-This project is now set up for Render using:
+Django application for the EkoKintsugi Founding Circle pilot.
 
-- Django web service
-- SQLite database on a Render persistent disk
-- WhiteNoise for static files
-- Gunicorn for the app server
+## Requirements
 
-The key deployment files already exist:
+- Python 3.14+
+- pip
+- Git
 
-- `render.yaml`
-- `build.sh`
-- `requirements.txt`
-- `config/settings.py`
+## Local Setup
 
-## What This Setup Does
-
-Instead of using a separate Postgres database, this setup uses:
-
-- `db.sqlite3` stored on a Render persistent disk
-- uploaded media stored on that same disk
-- static files served by WhiteNoise
-
-That is a good fit for this project because it is a small pilot system, not a high-scale app.
-
-## Important Tradeoff
-
-SQLite on Render is fine for this pilot, but keep in mind:
-
-- the app should stay on a single web instance
-- attached persistent disks are not for horizontal scaling
-- this is good for demo / pilot / low traffic
-- for future scale, Postgres is the better long-term option
-
-## Step 1: Push This Project to GitHub
-
-From this folder:
+1. Clone the repository:
 
 ```powershell
-git init
-git add .
-git commit -m "Prepare Render deployment"
+git clone https://github.com/YOUR-USERNAME/YOUR-REPO.git
+cd YOUR-REPO
 ```
 
-Then connect it to GitHub:
+2. Create a virtual environment:
 
 ```powershell
-git remote add origin https://github.com/YOUR-USERNAME/YOUR-REPO.git
-git branch -M main
-git push -u origin main
+python -m venv .venv
+.venv\Scripts\activate
 ```
 
-## Step 2: Create the Render Service
+3. Install dependencies:
 
-1. Log in to Render
-2. Click `New +`
-3. Choose `Blueprint`
-4. Connect your GitHub repository
-5. Select this repo
-6. Render will detect `render.yaml`
-7. Create the service
-
-Render will automatically create:
-
-- one Python web service
-- one persistent disk mounted at `/var/data`
-
-## Step 3: What Render Will Run
-
-Render will use:
-
-### Build command
-
-```bash
-bash build.sh
+```powershell
+pip install -r requirements.txt
 ```
 
-### Start command
+4. Run migrations:
 
-```bash
-gunicorn config.wsgi:application
+```powershell
+python manage.py migrate
 ```
 
-## Step 4: Environment Variables Already Defined in `render.yaml`
+5. Seed demo data:
 
-These are already configured:
+```powershell
+python manage.py seed_pilot
+```
 
-- `SECRET_KEY` generated automatically
+6. Start the development server:
+
+```powershell
+python manage.py runserver
+```
+
+7. Open:
+
+`http://127.0.0.1:8000/`
+
+## Demo Credentials
+
+- Admin: `admin@ekokintsugi.com` / `admin123`
+- User: `pilot1@ekokintsugi.com` / `pilot123`
+
+## Production Environment Variables
+
+Set these values in production:
+
+- `SECRET_KEY`
 - `DJANGO_DEBUG=false`
 - `SQLITE_PATH=/var/data/db.sqlite3`
 - `MEDIA_ROOT=/var/data/media`
 
-Because of that:
+Optional:
 
-- the SQLite database will live on the persistent disk
-- uploaded files will also persist
+- `ALLOWED_HOSTS`
+- `CSRF_TRUSTED_ORIGINS`
 
-## Step 5: First Deploy
+## Render Deployment
 
-During the first deploy, Render will run:
+Use a standard Render Web Service.
+
+### Service Configuration
+
+- Environment: `Python 3`
+- Build Command: `bash build.sh`
+- Start Command: `gunicorn config.wsgi:application`
+
+### Persistent Disk
+
+Attach a persistent disk with:
+
+- Mount Path: `/var/data`
+
+### Environment Variables
+
+Add:
+
+- `SECRET_KEY`
+- `DJANGO_DEBUG=false`
+- `SQLITE_PATH=/var/data/db.sqlite3`
+- `MEDIA_ROOT=/var/data/media`
+
+### Deploy
+
+After the first deploy, open the Render shell and run:
+
+```bash
+python manage.py seed_pilot
+```
+
+## Build Script
+
+`build.sh` runs:
 
 ```bash
 mkdir -p "$(dirname "${SQLITE_PATH:-db.sqlite3}")"
@@ -109,135 +117,12 @@ python manage.py collectstatic --no-input
 python manage.py migrate
 ```
 
-That means the service will:
+## Core Files
 
-- create the SQLite location
-- create the media folder
-- install dependencies
-- collect static files
-- run migrations
-
-## Step 6: Seed the Demo Data
-
-After the first successful deploy:
-
-1. Open the Render service
-2. Open `Shell`
-3. Run:
-
-```bash
-python manage.py seed_pilot
-```
-
-That creates:
-
-- 1 admin user
-- 10 demo pilot users
-- shoes
-- trees
-- points
-- reviews
-- sample return request
-
-## Step 7: Login Credentials
-
-After seeding:
-
-- Admin: `admin@ekokintsugi.com` / `admin123`
-- User: `pilot1@ekokintsugi.com` / `pilot123`
-
-## Step 8: Redeploying Later
-
-Whenever you push code to GitHub:
-
-```powershell
-git add .
-git commit -m "Update app"
-git push
-```
-
-Render will auto-deploy again.
-
-Your SQLite database and uploaded files will remain safe because they live on the persistent disk, not in the temporary deploy filesystem.
-
-## How This Project Detects Render
-
-The Render-specific behavior is already built into `config/settings.py`:
-
-- uses `RENDER_EXTERNAL_HOSTNAME` for allowed hosts
-- uses `SQLITE_PATH` for the database file
-- uses `MEDIA_ROOT` for uploaded files
-- turns debug off on Render
-- uses WhiteNoise for static files
-
-## If You Need Manual Render Setup Instead of Blueprint
-
-If you do not want to use `render.yaml`, create a normal Render web service and use:
-
-- Build Command: `bash build.sh`
-- Start Command: `gunicorn config.wsgi:application`
-
-Add these environment variables manually:
-
-- `SECRET_KEY` = any strong secret
-- `DJANGO_DEBUG` = `false`
-- `SQLITE_PATH` = `/var/data/db.sqlite3`
-- `MEDIA_ROOT` = `/var/data/media`
-
-Then attach a persistent disk:
-
-- Mount path: `/var/data`
-- Size: `1 GB` or more
-
-## Common Problems
-
-### Static files not loading
-
-Check:
-
-- `collectstatic` ran successfully in build logs
-- `whitenoise` exists in `requirements.txt`
-
-### `DisallowedHost`
-
-This project already supports Render hostnames automatically.
-
-If you add a custom domain later, set:
-
-- `ALLOWED_HOSTS=yourdomain.com,www.yourdomain.com`
-- `CSRF_TRUSTED_ORIGINS=https://yourdomain.com,https://www.yourdomain.com`
-
-### Data disappears after redeploy
-
-Cause:
-
-- no persistent disk attached
-
-Fix:
-
-- attach the Render disk
-- confirm `SQLITE_PATH` points inside `/var/data`
-- confirm `MEDIA_ROOT` points inside `/var/data`
-
-## Files You Should Commit
-
-- `render.yaml`
+- `config/settings.py`
 - `build.sh`
 - `requirements.txt`
-- `manage.py`
-- `config/`
+- `render.yaml`
 - `pilot/`
 - `templates/`
 - `static/`
-
-## Final Note
-
-This app is now deployment-ready for Render using SQLite on a persistent disk.
-
-If you want, I can do one more final polish pass and add:
-
-1. a `.gitignore`
-2. a `runtime.txt`
-3. a custom 500 / 404 page
-
-Those are optional, but they make the deployment feel more complete.
