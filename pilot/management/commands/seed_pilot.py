@@ -40,6 +40,7 @@ class Command(BaseCommand):
                 shoe_size=str(5 + (index % 5)),
                 start_date=f"2026-05-{index:02d}" if role == "intern" else None,
                 end_date=f"2026-07-{index:02d}" if role == "intern" else None,
+                is_demo_user=True,
             )
             Shoe.objects.create(
                 user=user,

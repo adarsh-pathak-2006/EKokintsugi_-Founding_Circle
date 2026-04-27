@@ -5,6 +5,10 @@ import dj_database_url
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
+RENDER_DISK_MOUNT_PATH = os.environ.get("RENDER_DISK_MOUNT_PATH")
+DEFAULT_SQLITE_DIR = Path(RENDER_DISK_MOUNT_PATH) if RENDER_DISK_MOUNT_PATH else BASE_DIR
+SQLITE_PATH = Path(os.environ.get("SQLITE_PATH", str(DEFAULT_SQLITE_DIR / "db.sqlite3")))
+MEDIA_ROOT_PATH = Path(os.environ.get("MEDIA_ROOT", str(DEFAULT_SQLITE_DIR / "media")))
 
 
 # Quick-start development settings - unsuitable for production
@@ -12,7 +16,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 
 SECRET_KEY = os.environ.get("SECRET_KEY", "django-insecure-local-dev-key")
 
-DEBUG = os.environ.get("DEBUG", "").lower() == "true"
+DEBUG = os.environ.get("DJANGO_DEBUG", "true").lower() == "true"
 if "RENDER" in os.environ:
     DEBUG = False
 
@@ -84,7 +88,7 @@ WSGI_APPLICATION = 'config.wsgi.application'
 
 DATABASES = {
     "default": dj_database_url.config(
-        default=f"sqlite:///{BASE_DIR / 'db.sqlite3'}",
+        default=f"sqlite:///{SQLITE_PATH}",
         conn_max_age=600,
     )
 }
@@ -127,9 +131,10 @@ USE_TZ = True
 STATIC_URL = 'static/'
 STATICFILES_DIRS = [BASE_DIR / 'static']
 STATIC_ROOT = BASE_DIR / 'staticfiles'
-STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
+if not DEBUG:
+    STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 MEDIA_URL = 'media/'
-MEDIA_ROOT = BASE_DIR / 'media'
+MEDIA_ROOT = MEDIA_ROOT_PATH
 
 AUTH_USER_MODEL = 'pilot.PilotUser'
 

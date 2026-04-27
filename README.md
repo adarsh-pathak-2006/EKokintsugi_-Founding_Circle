@@ -1,33 +1,49 @@
 # Deploy This Django Project on Render
 
-This project is now prepared for Render deployment.
+This project is now set up for Render using:
 
-Files already added for deployment:
+- Django web service
+- SQLite database on a Render persistent disk
+- WhiteNoise for static files
+- Gunicorn for the app server
 
-- `requirements.txt`
+The key deployment files already exist:
+
+- `render.yaml`
 - `build.sh`
-- `config/settings.py` updated for:
-  - `DATABASE_URL`
-  - `SECRET_KEY`
-  - Render host handling
-  - WhiteNoise static files
-  - PostgreSQL in production
+- `requirements.txt`
+- `config/settings.py`
 
-## What You Need Before Starting
+## What This Setup Does
 
-1. A GitHub account
-2. A Render account
-3. This project pushed to a GitHub repository
+Instead of using a separate Postgres database, this setup uses:
 
-If this project is only on your laptop right now, run:
+- `db.sqlite3` stored on a Render persistent disk
+- uploaded media stored on that same disk
+- static files served by WhiteNoise
+
+That is a good fit for this project because it is a small pilot system, not a high-scale app.
+
+## Important Tradeoff
+
+SQLite on Render is fine for this pilot, but keep in mind:
+
+- the app should stay on a single web instance
+- attached persistent disks are not for horizontal scaling
+- this is good for demo / pilot / low traffic
+- for future scale, Postgres is the better long-term option
+
+## Step 1: Push This Project to GitHub
+
+From this folder:
 
 ```powershell
 git init
 git add .
-git commit -m "Prepare Django app for Render deployment"
+git commit -m "Prepare Render deployment"
 ```
 
-Then create a new GitHub repo and push:
+Then connect it to GitHub:
 
 ```powershell
 git remote add origin https://github.com/YOUR-USERNAME/YOUR-REPO.git
@@ -35,201 +51,24 @@ git branch -M main
 git push -u origin main
 ```
 
-## Local Check Before Deploying
+## Step 2: Create the Render Service
 
-From the project folder:
+1. Log in to Render
+2. Click `New +`
+3. Choose `Blueprint`
+4. Connect your GitHub repository
+5. Select this repo
+6. Render will detect `render.yaml`
+7. Create the service
 
-```powershell
-python manage.py check
-python manage.py runserver
-```
+Render will automatically create:
 
-Open `http://127.0.0.1:8000/` and confirm the app works locally.
+- one Python web service
+- one persistent disk mounted at `/var/data`
 
-## Step 1: Create a PostgreSQL Database on Render
+## Step 3: What Render Will Run
 
-1. Log in to Render.
-2. Click `New +`.
-3. Choose `PostgreSQL`.
-4. Give it a name like `ekokintsugi-db`.
-5. Create the database.
-6. After it is created, open the database details page.
-7. Copy the `Internal Database URL`.
-
-You will use that as `DATABASE_URL` in the web service.
-
-## Step 2: Create the Django Web Service on Render
-
-1. In Render, click `New +`.
-2. Choose `Web Service`.
-3. Connect your GitHub repository.
-4. Select the repo for this project.
-5. Choose the branch you want to deploy, usually `main`.
-6. Set the following values:
-
-- `Language`: `Python 3`
-- `Build Command`: `bash build.sh`
-- `Start Command`: `python -m gunicorn config.asgi:application -k uvicorn.workers.UvicornWorker`
-
-## Step 3: Add Environment Variables
-
-In the Render web service settings, add these environment variables:
-
-- `DATABASE_URL` = paste the Internal Database URL from your Render Postgres instance
-- `SECRET_KEY` = click `Generate` in Render or paste a strong random secret
-- `WEB_CONCURRENCY` = `4`
-- `DEBUG` = `false`
-
-Optional:
-
-- `ALLOWED_HOSTS` = comma-separated extra domains if you later add a custom domain
-- `CSRF_TRUSTED_ORIGINS` = comma-separated full origins like `https://yourdomain.com`
-
-Important:
-
-- Render automatically provides `RENDER_EXTERNAL_HOSTNAME`
-- this project already reads that value in `config/settings.py`
-- because of that, the default Render `.onrender.com` domain should work without extra code changes
-
-## Step 4: Deploy
-
-After saving the web service:
-
-1. Render will start the build
-2. `build.sh` will run:
-
-```bash
-set -o errexit
-python -m pip install --upgrade pip
-pip install -r requirements.txt
-python manage.py collectstatic --no-input
-python manage.py migrate
-```
-
-3. When the deploy finishes, open your Render service URL
-
-If the build fails, open the Render logs and check the exact error.
-
-## Step 5: Seed the Demo Data
-
-This project includes a seed command for:
-
-- 1 admin account
-- 10 pilot users
-- shoes
-- trees
-- points
-- sample reviews
-- a sample return request
-
-After the first successful deploy:
-
-1. Open your Render web service
-2. Open `Shell`
-3. Run:
-
-```bash
-python manage.py seed_pilot
-```
-
-## Step 6: Login Credentials
-
-After running the seed command:
-
-- Admin: `admin@ekokintsugi.com` / `admin123`
-- User: `pilot1@ekokintsugi.com` / `pilot123`
-
-## Step 7: Future Updates
-
-Whenever you push new code to GitHub:
-
-```powershell
-git add .
-git commit -m "Update app"
-git push
-```
-
-Render will automatically redeploy if auto-deploy is enabled.
-
-## Uploaded Images / Media Files
-
-This app allows weekly review image uploads.
-
-Important for Render:
-
-- static files are handled by WhiteNoise and are fine
-- uploaded media files are different from static files
-- if you store uploads only on the web service filesystem, they can be lost on redeploy or restart
-
-For production-safe media handling, use one of these:
-
-1. Attach a persistent disk on Render and point `MEDIA_ROOT` there
-2. Store uploads in external object storage like AWS S3 or Cloudinary
-
-If you skip this, image uploads may not persist reliably.
-
-## If You Want a Custom Domain
-
-After adding a custom domain in Render:
-
-1. keep the domain attached to the Render service
-2. set:
-
-- `ALLOWED_HOSTS=yourdomain.com,www.yourdomain.com`
-- `CSRF_TRUSTED_ORIGINS=https://yourdomain.com,https://www.yourdomain.com`
-
-Then redeploy.
-
-## Common Problems
-
-### 1. `DisallowedHost`
-
-Cause:
-- custom domain not added to `ALLOWED_HOSTS`
-
-Fix:
-- set the `ALLOWED_HOSTS` environment variable in Render
-
-### 2. Static files not loading
-
-Cause:
-- `collectstatic` did not run or build failed
-
-Fix:
-- confirm the build command is `bash build.sh`
-- confirm `whitenoise` is in `requirements.txt`
-
-### 3. Database connection error
-
-Cause:
-- wrong `DATABASE_URL`
-
-Fix:
-- use the `Internal Database URL` from the Render PostgreSQL service
-
-### 4. Forms fail with CSRF errors on custom domain
-
-Cause:
-- missing trusted origin
-
-Fix:
-- set `CSRF_TRUSTED_ORIGINS` in Render
-
-### 5. Images disappear later
-
-Cause:
-- media files stored only on ephemeral disk
-
-Fix:
-- use a persistent disk or external storage
-
-## Exact Commands Used by This Project
-
-### Start command
-
-```bash
-python -m gunicorn config.asgi:application -k uvicorn.workers.UvicornWorker
-```
+Render will use:
 
 ### Build command
 
@@ -237,8 +76,152 @@ python -m gunicorn config.asgi:application -k uvicorn.workers.UvicornWorker
 bash build.sh
 ```
 
-## Files to Make Sure You Commit
+### Start command
 
+```bash
+gunicorn config.wsgi:application
+```
+
+## Step 4: Environment Variables Already Defined in `render.yaml`
+
+These are already configured:
+
+- `SECRET_KEY` generated automatically
+- `DJANGO_DEBUG=false`
+- `SQLITE_PATH=/var/data/db.sqlite3`
+- `MEDIA_ROOT=/var/data/media`
+
+Because of that:
+
+- the SQLite database will live on the persistent disk
+- uploaded files will also persist
+
+## Step 5: First Deploy
+
+During the first deploy, Render will run:
+
+```bash
+mkdir -p "$(dirname "${SQLITE_PATH:-db.sqlite3}")"
+mkdir -p "${MEDIA_ROOT:-media}"
+python -m pip install --upgrade pip
+pip install -r requirements.txt
+python manage.py collectstatic --no-input
+python manage.py migrate
+```
+
+That means the service will:
+
+- create the SQLite location
+- create the media folder
+- install dependencies
+- collect static files
+- run migrations
+
+## Step 6: Seed the Demo Data
+
+After the first successful deploy:
+
+1. Open the Render service
+2. Open `Shell`
+3. Run:
+
+```bash
+python manage.py seed_pilot
+```
+
+That creates:
+
+- 1 admin user
+- 10 demo pilot users
+- shoes
+- trees
+- points
+- reviews
+- sample return request
+
+## Step 7: Login Credentials
+
+After seeding:
+
+- Admin: `admin@ekokintsugi.com` / `admin123`
+- User: `pilot1@ekokintsugi.com` / `pilot123`
+
+## Step 8: Redeploying Later
+
+Whenever you push code to GitHub:
+
+```powershell
+git add .
+git commit -m "Update app"
+git push
+```
+
+Render will auto-deploy again.
+
+Your SQLite database and uploaded files will remain safe because they live on the persistent disk, not in the temporary deploy filesystem.
+
+## How This Project Detects Render
+
+The Render-specific behavior is already built into `config/settings.py`:
+
+- uses `RENDER_EXTERNAL_HOSTNAME` for allowed hosts
+- uses `SQLITE_PATH` for the database file
+- uses `MEDIA_ROOT` for uploaded files
+- turns debug off on Render
+- uses WhiteNoise for static files
+
+## If You Need Manual Render Setup Instead of Blueprint
+
+If you do not want to use `render.yaml`, create a normal Render web service and use:
+
+- Build Command: `bash build.sh`
+- Start Command: `gunicorn config.wsgi:application`
+
+Add these environment variables manually:
+
+- `SECRET_KEY` = any strong secret
+- `DJANGO_DEBUG` = `false`
+- `SQLITE_PATH` = `/var/data/db.sqlite3`
+- `MEDIA_ROOT` = `/var/data/media`
+
+Then attach a persistent disk:
+
+- Mount path: `/var/data`
+- Size: `1 GB` or more
+
+## Common Problems
+
+### Static files not loading
+
+Check:
+
+- `collectstatic` ran successfully in build logs
+- `whitenoise` exists in `requirements.txt`
+
+### `DisallowedHost`
+
+This project already supports Render hostnames automatically.
+
+If you add a custom domain later, set:
+
+- `ALLOWED_HOSTS=yourdomain.com,www.yourdomain.com`
+- `CSRF_TRUSTED_ORIGINS=https://yourdomain.com,https://www.yourdomain.com`
+
+### Data disappears after redeploy
+
+Cause:
+
+- no persistent disk attached
+
+Fix:
+
+- attach the Render disk
+- confirm `SQLITE_PATH` points inside `/var/data`
+- confirm `MEDIA_ROOT` points inside `/var/data`
+
+## Files You Should Commit
+
+- `render.yaml`
 - `build.sh`
 - `requirements.txt`
 - `manage.py`
@@ -247,11 +230,14 @@ bash build.sh
 - `templates/`
 - `static/`
 
-Do not rely on `db.sqlite3` for production on Render. Production should use Render PostgreSQL.
+## Final Note
 
-## Official References
+This app is now deployment-ready for Render using SQLite on a persistent disk.
 
-- Render Django deployment docs: https://render.com/docs/deploy-django
-- Render web services docs: https://render.com/docs/web-services
+If you want, I can do one more final polish pass and add:
 
-These instructions were written to match this repo's current Django setup and Render's official Django deployment guidance.
+1. a `.gitignore`
+2. a `runtime.txt`
+3. a custom 500 / 404 page
+
+Those are optional, but they make the deployment feel more complete.

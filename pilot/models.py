@@ -24,6 +24,7 @@ class PilotUser(AbstractUser):
     shoe_size = models.CharField(max_length=10, blank=True)
     start_date = models.DateField(blank=True, null=True)
     end_date = models.DateField(blank=True, null=True)
+    is_demo_user = models.BooleanField(default=False)
     qr_token = models.UUIDField(default=uuid.uuid4, unique=True, editable=False)
 
     def clean(self):

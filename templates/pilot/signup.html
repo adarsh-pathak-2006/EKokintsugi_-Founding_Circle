@@ -6,8 +6,9 @@
 <section class="panel">
   <p class="section-kicker">Pilot registration</p>
   <h2>Create a pilot user</h2>
+  <p class="muted">Live signup slots used: {{ live_user_count }}/{{ max_live_users }}. Seeded demo accounts do not consume these slots.</p>
   {% if pilot_full %}
-    <div class="callout danger">Pilot is full. Only 10 users are allowed.</div>
+    <div class="callout danger">Pilot is full. Only 10 live users are allowed.</div>
   {% endif %}
   <form method="post" class="stack">
     {% csrf_token %}

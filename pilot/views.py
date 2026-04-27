@@ -11,12 +11,15 @@ from django.urls import reverse
 from .forms import (
     AdminCreateUserForm,
     EmailAuthenticationForm,
+    PilotSignupForm,
     PointsAdjustmentForm,
     ReturnRequestForm,
     ReturnStatusForm,
     WeeklyReviewForm,
 )
 from .models import PilotUser, PointTransaction, PointsAccount, ReturnRequest, Shoe, SymbolicTree
+
+MAX_LIVE_PILOT_USERS = 10
 
 
 def admin_required(view_func):
@@ -64,6 +67,10 @@ def create_pilot_bundle(user):
     PointsAccount.objects.get_or_create(user=user)
 
 
+def live_pilot_user_count():
+    return PilotUser.objects.filter(is_staff=False, is_demo_user=False).count()
+
+
 def home(request):
     if request.user.is_authenticated:
         if request.user.is_staff:
@@ -89,18 +96,28 @@ def login_view(request):
 def signup_view(request):
     form = PilotSignupForm(request.POST or None)
     if request.method == "POST":
-        if PilotUser.objects.filter(is_staff=False).count() >= 10:
-            messages.error(request, "Pilot is full. Only 10 users are allowed.")
+        if live_pilot_user_count() >= MAX_LIVE_PILOT_USERS:
+            messages.error(request, "Pilot is full. Only 10 live users are allowed.")
         elif form.is_valid():
             user = form.save(commit=False)
             user.email = user.email.lower()
             user.username = create_username(user.email)
+            user.is_demo_user = False
             user.set_password(form.cleaned_data["password"])
             user.save()
             create_pilot_bundle(user)
             messages.success(request, "Pilot account created. Please log in.")
             return redirect("login")
-    return render(request, "pilot/signup.html", {"form": form, "pilot_full": PilotUser.objects.filter(is_staff=False).count() >= 10})
+    return render(
+        request,
+        "pilot/signup.html",
+        {
+            "form": form,
+            "pilot_full": live_pilot_user_count() >= MAX_LIVE_PILOT_USERS,
+            "live_user_count": live_pilot_user_count(),
+            "max_live_users": MAX_LIVE_PILOT_USERS,
+        },
+    )
 
 
 def logout_view(request):
@@ -177,12 +194,13 @@ def admin_dashboard_view(request):
     users = PilotUser.objects.filter(is_staff=False).select_related("shoe", "tree", "points_account")
     create_form = AdminCreateUserForm(request.POST or None, prefix="create")
     if request.method == "POST" and request.POST.get("form_name") == "create-user":
-        if users.count() >= 10:
-            messages.error(request, "Pilot is full. Only 10 users are allowed.")
+        if live_pilot_user_count() >= MAX_LIVE_PILOT_USERS:
+            messages.error(request, "Pilot is full. Only 10 live users are allowed.")
         elif create_form.is_valid():
             user = create_form.save(commit=False)
             user.email = user.email.lower()
             user.username = create_username(user.email)
+            user.is_demo_user = False
             user.set_password(create_form.cleaned_data["password"])
             user.save()
             create_pilot_bundle(user)
@@ -219,6 +237,8 @@ def admin_dashboard_view(request):
             "review_rows": review_rows,
             "total_reviews": total_reviews,
             "delivered_count": delivered_count,
+            "live_user_count": live_pilot_user_count(),
+            "max_live_users": MAX_LIVE_PILOT_USERS,
         },
     )
 
