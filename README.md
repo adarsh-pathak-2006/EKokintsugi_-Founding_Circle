@@ -107,11 +107,7 @@ Add these in Render:
 
 ### First Deploy
 
-After your web service deploys successfully, open the Render shell and run:
-
-```bash
-python manage.py seed_pilot
-```
+The first deploy runs migrations automatically. A data migration seeds the demo admin and pilot users for fresh databases, so you do not need Render Shell on the free plan.
 
 ## Core Files
 
