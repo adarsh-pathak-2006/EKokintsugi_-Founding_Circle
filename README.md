@@ -100,9 +100,9 @@ Use these values on the setup screen:
 - Region: choose the closest region to your users
 - Runtime: `Python 3`
 - Build Command: `bash build.sh`
-- Start Command: `gunicorn config.wsgi:application`
+- Start Command: `bash start.sh`
 
-If Render asks for a Python version, use `3.13.2` or another Python `3.12+` version.
+This repo includes `.python-version` so Render should use Python `3.13`. If Render still chooses a different version, add `PYTHON_VERSION=3.13.5` in the service environment.
 
 ### Add a Persistent Disk
 
@@ -138,7 +138,11 @@ Optional if you use a custom domain or extra hostnames:
 3. The build script will:
    - install dependencies
    - collect static files
+
+4. When the service starts, it will:
+   - create the SQLite and media folders on the mounted disk
    - run migrations
+   - start Gunicorn
 
 ### Seed Demo Data
 
@@ -161,7 +165,7 @@ python manage.py seed_pilot
 
 ### If Something Fails
 
-- If the build fails on Python version, set the service to Python `3.12+`.
+- If Render still uses Python `3.14.x`, add `PYTHON_VERSION=3.13.5` and redeploy.
 - If login or forms fail with host or CSRF errors on a custom domain, set:
   - `ALLOWED_HOSTS=your-domain.onrender.com,yourdomain.com`
   - `CSRF_TRUSTED_ORIGINS=https://your-domain.onrender.com,https://yourdomain.com`
@@ -172,19 +176,27 @@ python manage.py seed_pilot
 `build.sh` runs:
 
 ```bash
-mkdir -p "$(dirname "${SQLITE_PATH:-db.sqlite3}")"
-mkdir -p "${MEDIA_ROOT:-media}"
 python -m pip install --upgrade pip
 pip install -r requirements.txt
 python manage.py collectstatic --no-input
+```
+
+`start.sh` runs:
+
+```bash
+mkdir -p "$(dirname "${SQLITE_PATH:-db.sqlite3}")"
+mkdir -p "${MEDIA_ROOT:-media}"
 python manage.py migrate
+gunicorn config.wsgi:application
 ```
 
 ## Core Files
 
 - `config/settings.py`
 - `build.sh`
+- `start.sh`
 - `requirements.txt`
+- `.python-version`
 - `pilot/`
 - `templates/`
 - `static/`
