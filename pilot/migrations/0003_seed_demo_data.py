@@ -1,3 +1,4 @@
+from django.contrib.auth.hashers import make_password
 from django.db import migrations
 
 
@@ -21,8 +22,8 @@ def seed_demo_data(apps, schema_editor):
         },
     )
     if admin_created:
-        admin.set_password("admin123")
-        admin.save()
+        admin.password = make_password("admin123")
+        admin.save(update_fields=["password"])
     elif not admin.is_superuser or not admin.is_staff:
         admin.is_superuser = True
         admin.is_staff = True
@@ -51,8 +52,8 @@ def seed_demo_data(apps, schema_editor):
             },
         )
         if user_created:
-            user.set_password("pilot123")
-            user.save()
+            user.password = make_password("pilot123")
+            user.save(update_fields=["password"])
         elif not user.is_demo_user:
             user.is_demo_user = True
             user.save(update_fields=["is_demo_user"])
