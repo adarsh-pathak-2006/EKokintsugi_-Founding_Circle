@@ -4,7 +4,7 @@ Django application for the EkoKintsugi Founding Circle pilot.
 
 ## Requirements
 
-- Python 3.14+
+- Python 3.12+
 - pip
 - Git
 
@@ -71,38 +71,101 @@ Optional:
 - `ALLOWED_HOSTS`
 - `CSRF_TRUSTED_ORIGINS`
 
-## Render Deployment
+## Render Deployment (Manual Setup)
 
-Use a standard Render Web Service.
+This project is ready for a manual Render Web Service deployment. You do not need to use the Blueprint flow or import `render.yaml`.
 
-### Service Configuration
+### Before You Start
 
-- Environment: `Python 3`
+1. Push this repo to GitHub.
+2. Make sure your default branch contains:
+   - `build.sh`
+   - `requirements.txt`
+   - `manage.py`
+   - `config/settings.py`
+
+### Create the Render Service
+
+1. Log in to Render.
+2. Click `New +`.
+3. Choose `Web Service`.
+4. Connect your GitHub repo.
+5. Pick the branch you want to deploy.
+
+### Configure the Web Service
+
+Use these values on the setup screen:
+
+- Name: anything you want, for example `ekokintsugi-pilot`
+- Region: choose the closest region to your users
+- Runtime: `Python 3`
 - Build Command: `bash build.sh`
 - Start Command: `gunicorn config.wsgi:application`
 
-### Persistent Disk
+If Render asks for a Python version, use `3.13.2` or another Python `3.12+` version.
 
-Attach a persistent disk with:
+### Add a Persistent Disk
 
+Before deploying, add a disk:
+
+- Disk Name: `ekokintsugi-data`
 - Mount Path: `/var/data`
+- Size: `1 GB` is enough to start
 
-### Environment Variables
+This matters because the app stores:
 
-Add:
+- SQLite database at `/var/data/db.sqlite3`
+- Uploaded media at `/var/data/media`
+
+### Add Environment Variables
+
+In the Render service settings, add:
 
 - `SECRET_KEY`
-- `DJANGO_DEBUG=false`
-- `SQLITE_PATH=/var/data/db.sqlite3`
-- `MEDIA_ROOT=/var/data/media`
+- `DJANGO_DEBUG` = `false`
+- `SQLITE_PATH` = `/var/data/db.sqlite3`
+- `MEDIA_ROOT` = `/var/data/media`
 
-### Deploy
+Optional if you use a custom domain or extra hostnames:
 
-After the first deploy, open the Render shell and run:
+- `ALLOWED_HOSTS`
+- `CSRF_TRUSTED_ORIGINS`
+
+### First Deploy
+
+1. Click `Create Web Service`.
+2. Wait for the build to finish.
+3. The build script will:
+   - install dependencies
+   - collect static files
+   - run migrations
+
+### Seed Demo Data
+
+After the first deploy succeeds:
+
+1. Open your service in Render.
+2. Go to `Shell`.
+3. Run:
 
 ```bash
 python manage.py seed_pilot
 ```
+
+### Open the App
+
+1. Visit your Render service URL.
+2. Log in with:
+   - Admin: `admin@ekokintsugi.com` / `admin123`
+   - User: `pilot1@ekokintsugi.com` / `pilot123`
+
+### If Something Fails
+
+- If the build fails on Python version, set the service to Python `3.12+`.
+- If login or forms fail with host or CSRF errors on a custom domain, set:
+  - `ALLOWED_HOSTS=your-domain.onrender.com,yourdomain.com`
+  - `CSRF_TRUSTED_ORIGINS=https://your-domain.onrender.com,https://yourdomain.com`
+- If data disappears after redeploy, the disk is missing or mounted to the wrong path.
 
 ## Build Script
 
@@ -122,7 +185,6 @@ python manage.py migrate
 - `config/settings.py`
 - `build.sh`
 - `requirements.txt`
-- `render.yaml`
 - `pilot/`
 - `templates/`
 - `static/`
